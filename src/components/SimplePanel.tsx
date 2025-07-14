@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { useTheme2 } from '@grafana/ui';
 import { css } from '@emotion/css';
 import type { Props, TooltipState, TimelineEvent } from './types';
@@ -17,6 +17,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
     y: 0,
     content: '',
   });
+  const hoverTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Memoized derived data
   const metrics = useMemo(() => options.metrics || [], [options.metrics]);
@@ -46,6 +47,10 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
 
   // Event handlers
   const handlePointHover = useCallback((event: React.MouseEvent, timelineEvent: TimelineEvent) => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+
     const container = containerRef.current;
     if (!container) {
       return;
@@ -54,27 +59,36 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
     const rect = container.getBoundingClientRect();
     setTooltip({
       visible: true,
-      x: event.clientX - rect.left + window.scrollX,
-      y: event.clientY - rect.top + window.scrollY,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
       content: timelineEvent.displayName,
     });
   }, []);
 
   const handleMouseLeave = useCallback(() => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      setTooltip((prev) => ({ ...prev, visible: false }));
+    }, 300);
+  }, []);
+
+  const handleTooltipMouseEnter = useCallback(() => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+  }, []);
+
+  const handleTooltipMouseLeave = useCallback(() => {
     setTooltip((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  // Auto-hide tooltip effect
+  // Clean up timeout on unmount
   useEffect(() => {
-    const handleGlobalMouseMove = () => {
-      if (tooltip.visible) {
-        setTooltip((prev) => ({ ...prev, visible: false }));
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
       }
     };
-
-    window.addEventListener('mousemove', handleGlobalMouseMove);
-    return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
-  }, [tooltip.visible]);
+  }, []);
 
   // Empty states
   if (!metrics.length) {
@@ -98,7 +112,6 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
         border-radius: ${theme.shape.radius.default};
         overflow: hidden;
       `}
-      onMouseLeave={handleMouseLeave}
     >
       <div
         className={css`
@@ -108,6 +121,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
           min-height: 0;
           overflow-y: auto;
         `}
+        onMouseLeave={handleMouseLeave}
       >
         {metrics.map((metric, index) => {
           const metricName = metric.name || metric.refId || '';
@@ -181,7 +195,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
         </div>
       )}
 
-      <Tooltip tooltip={tooltip} />
+      <Tooltip tooltip={tooltip} onMouseEnter={handleTooltipMouseEnter} onMouseLeave={handleTooltipMouseLeave} />
     </div>
   );
 };

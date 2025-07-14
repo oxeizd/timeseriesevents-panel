@@ -31,215 +31,46 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 15,
+        "w": 24,
         "x": 0,
         "y": 0
       },
-      "id": 1,
+      "id": 3,
+      "interval": "5h",
       "options": {
         "allowLineWrapping": false,
-        "expandMetricNames": false,
-        "maxLabelWidth": 60,
+        "maxLabelWidth": 99,
         "metrics": [
           {
-            "dateField": "Time",
-            "name": "Metric 113",
-            "pointColor": "#FF6B6B",
-            "refId": "A"
-          },
-          {
-            "dateField": "Time",
-            "name": "Metric 2",
-            "pointColor": "#4ECDC4",
-            "refId": "A"
-          },
-          {
-            "dateField": "Time",
-            "name": "Metric 3",
-            "pointColor": "#45B7D1",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 4",
-            "pointColor": "#96CEB4",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 5Metric 5",
-            "pointColor": "#FFEAA7",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 6Metric 6Metric 6Metric 6Metric 6Metric 6",
+            "dateField": "time",
+            "name": "Metric 1",
             "pointColor": "#DDA0DD",
             "refId": "A"
           },
           {
-            "dateField": "",
-            "name": "Metric 7",
-            "pointColor": "#98D8C8",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 8",
-            "pointColor": "#F7DC6F",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 9",
-            "pointColor": "#FF6B6B",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 10",
-            "pointColor": "#4ECDC4",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 11",
-            "pointColor": "#45B7D1",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 12",
-            "pointColor": "#96CEB4",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 13",
-            "pointColor": "#FFEAA7",
-            "refId": "A"
-          },
-          {
-            "dateField": "",
-            "name": "Metric 14",
+            "dateField": "time",
+            "name": "Metric 2",
             "pointColor": "#DDA0DD",
             "refId": "A"
           }
         ],
-        "seriesCountSize": "sm",
-        "showSeriesCount": false,
-        "text": "Default value of text input option",
-        "timeLabelDensity": "high"
+        "minTrackHeight": 32,
+        "showBottomBorder": false,
+        "showLegend": false,
+        "showMetricLabels": true,
+        "showPointGlow": true,
+        "showTimeLabels": true,
+        "timeLabelDensity": "medium"
       },
       "pluginVersion": "1.0.0",
       "targets": [
         {
-          "datasource": {
-            "type": "grafana-testdata-datasource",
-            "uid": "db84e60d-b92a-4089-82cb-34842fb1754b"
-          },
-          "rawFrameContent": "[\n  {\n    \"columns\": [\n      {\n        \"text\": \"Time\",\n        \"type\": \"time\"\n      },\n      {\n        \"text\": \"Label\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"Value\",\n        \"type\": \"number\"\n      }\n    ],\n    \"rows\": [\n      [1751659200000, \"A\", 10],\n      [1751459200000, \"B\", 20],\n      [1609466400000, \"C\", 15],\n      [1609470000000, \"D\", 25],\n      [1609473600000, \"E\", 30]\n    ]\n  },\n{\n    \"columns\": [\n      {\n        \"text\": \"Time\",\n        \"type\": \"time\"\n      },\n      {\n        \"text\": \"Label\",\n        \"type\": \"string\"\n      },\n      {\n        \"text\": \"Value\",\n        \"type\": \"number\"\n      }\n    ],\n    \"rows\": [\n      [1609459200000, \"A\", 40],\n      [1609462800000, \"B\", 50],\n      [1609466400000, \"C\", 45],\n      [1609470000000, \"D\", 55],\n      [1609473600000, \"E\", 60]\n    ]\n  }\n]",
-          "refId": "A",
-          "scenarioId": "raw_frame"
-        }
-      ],
-      "title": "Sample Panel Title",
-      "type": "none-timeseriesevents-panel"
-    },
-    {
-      "datasource": {
-        "type": "datasource",
-        "uid": "grafana"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "11.5.3",
-      "targets": [
-        {
-          "datasource": {
-            "type": "datasource",
-            "uid": "grafana"
-          },
-          "queryType": "randomWalk",
           "refId": "A"
         }
       ],
-      "title": "Sample Panel Title",
-      "type": "timeseries"
+      "title": "Panel Title",
+      "type": "timeseriesevents-panel"
     }
   ],
   "preload": false,
@@ -257,6 +88,6 @@
   "timezone": "",
   "title": "Provisioned timeseries events dashboard",
   "uid": "a538aeff-5a8a-42a5-901c-938d896fdd6f",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
