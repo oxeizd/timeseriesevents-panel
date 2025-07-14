@@ -1,0 +1,7 @@
+apiVersion: 1
+
+providers:
+  - name: 'timeseries events'
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards

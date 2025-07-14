@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "jsx": "react"
+  },
+  "compilerOptions": {
+    "esModuleInterop": true
+    // other options...
+  },
+
+  "extends": "./.config/tsconfig.json"
+}
