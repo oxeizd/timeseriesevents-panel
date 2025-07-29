@@ -23,16 +23,15 @@ export const Tooltip: React.FC<TooltipProps> = ({ tooltip, onMouseEnter, onMouse
         left: ${tooltip.x}px;
         top: ${tooltip.y}px;
         background: ${theme.colors.background.primary};
-        border: 1px solid ${theme.colors.border.medium};
-        border-radius: ${theme.shape.radius.default};
-        padding: ${theme.spacing(1)};
+        border: 1px solid ${theme.colors.border.weak};
+        border-radius: 3px;
+        padding: 6px 8px;
         color: ${theme.colors.text.primary};
         font-size: ${theme.typography.bodySmall.fontSize};
-        box-shadow: ${theme.shadows.z3};
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         pointer-events: auto;
         z-index: 100;
         max-width: 300px;
-        transform: translate(10px, 10px);
       `}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
