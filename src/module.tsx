@@ -1,5 +1,5 @@
 import { PanelPlugin } from '@grafana/data';
-import type { SimpleOptions, MetricConfig } from './components/types';
+import { SimpleOptions, MetricConfig } from './components/types';
 import { SimplePanel } from './components/SimplePanel';
 import { Button, Combobox, ColorPicker, Input, useTheme2 } from '@grafana/ui';
 import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react';
@@ -14,11 +14,22 @@ const MetricsEditor: React.FC<{
   const theme = useTheme2();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const prevMetricsCount = useRef(value.length);
+
+  // Используем ref для хранения строкового представления последнего обработанного пропса 'value'.
+  // Это позволяет выполнять глубокое сравнение и предотвращать бесконечные ререндеры.
+  const lastProcessedValueString = useRef(JSON.stringify(value));
   const [localMetrics, setLocalMetrics] = useState<MetricConfig[]>(value);
 
   useEffect(() => {
-    setLocalMetrics(value);
-  }, [value]);
+    const currentValueString = JSON.stringify(value);
+    // Обновляем локальное состояние только если входящий пропс 'value' действительно отличается
+    // (глубокое сравнение через stringify) от последнего обработанного значения.
+    // Это предотвращает бесконечные ререндеры, если Grafana всегда передает новую ссылку на массив.
+    if (currentValueString !== lastProcessedValueString.current) {
+      setLocalMetrics(value);
+      lastProcessedValueString.current = currentValueString;
+    }
+  }, [value]); // Зависимость только от 'value'
 
   const availableRefIds = useMemo(() => {
     if (!context.data) {
@@ -53,12 +64,12 @@ const MetricsEditor: React.FC<{
       refId: availableRefIds[0] || 'A',
       dateField: '',
       pointColor: getRandomColor(),
-      name: `Metric ${value.length + 1}`,
+      name: `Metric ${localMetrics.length + 1}`, // Используем localMetrics.length для нового имени
     };
     const updatedMetrics = [...localMetrics, newMetric];
     setLocalMetrics(updatedMetrics);
     onChange(updatedMetrics);
-  }, [localMetrics, onChange, availableRefIds, value.length]);
+  }, [localMetrics, onChange, availableRefIds]);
 
   const updateMetric = useCallback(
     <K extends keyof MetricConfig>(index: number, field: K, newValue: MetricConfig[K], immediate = false) => {
