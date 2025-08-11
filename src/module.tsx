@@ -2,34 +2,19 @@ import { PanelPlugin } from '@grafana/data';
 import { SimpleOptions, MetricConfig } from './components/types';
 import { SimplePanel } from './components/SimplePanel';
 import { Button, Combobox, ColorPicker, Input, useTheme2 } from '@grafana/ui';
-import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import { CONSTANTS } from './components/constants';
 import { getRandomColor } from './components/config';
 
-const MetricsEditor: React.FC<{
+interface MetricsEditorProps {
   value?: MetricConfig[];
   onChange: (value: MetricConfig[]) => void;
   context: any;
-}> = ({ value = [], onChange, context }) => {
+}
+
+export const MetricsEditor: React.FC<MetricsEditorProps> = ({ value = [], onChange, context }) => {
   const theme = useTheme2();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const prevMetricsCount = useRef(value.length);
-
-  // Используем ref для хранения строкового представления последнего обработанного пропса 'value'.
-  // Это позволяет выполнять глубокое сравнение и предотвращать бесконечные ререндеры.
-  const lastProcessedValueString = useRef(JSON.stringify(value));
-  const [localMetrics, setLocalMetrics] = useState<MetricConfig[]>(value);
-
-  useEffect(() => {
-    const currentValueString = JSON.stringify(value);
-    // Обновляем локальное состояние только если входящий пропс 'value' действительно отличается
-    // (глубокое сравнение через stringify) от последнего обработанного значения.
-    // Это предотвращает бесконечные ререндеры, если Grafana всегда передает новую ссылку на массив.
-    if (currentValueString !== lastProcessedValueString.current) {
-      setLocalMetrics(value);
-      lastProcessedValueString.current = currentValueString;
-    }
-  }, [value]); // Зависимость только от 'value'
 
   const availableRefIds = useMemo(() => {
     if (!context.data) {
@@ -64,49 +49,31 @@ const MetricsEditor: React.FC<{
       refId: availableRefIds[0] || 'A',
       dateField: '',
       pointColor: getRandomColor(),
-      name: `Metric ${localMetrics.length + 1}`, // Используем localMetrics.length для нового имени
+      name: `Metric ${value.length + 1}`,
     };
-    const updatedMetrics = [...localMetrics, newMetric];
-    setLocalMetrics(updatedMetrics);
+    const updatedMetrics = [...value, newMetric];
     onChange(updatedMetrics);
-  }, [localMetrics, onChange, availableRefIds]);
+  }, [value, onChange, availableRefIds]);
 
   const updateMetric = useCallback(
-    <K extends keyof MetricConfig>(index: number, field: K, newValue: MetricConfig[K], immediate = false) => {
-      const updated = [...localMetrics];
+    <K extends keyof MetricConfig>(index: number, field: K, newValue: MetricConfig[K]) => {
+      const updated = [...value];
       updated[index] = {
         ...updated[index],
         [field]: newValue,
       };
-      setLocalMetrics(updated);
-
-      if (immediate) {
-        onChange(updated);
-      }
+      onChange(updated);
     },
-    [localMetrics, onChange]
+    [value, onChange]
   );
-
-  const handleBlur = useCallback(() => {
-    onChange(localMetrics);
-  }, [localMetrics, onChange]);
 
   const removeMetric = useCallback(
     (index: number) => {
-      const updated = localMetrics.filter((_, i) => i !== index);
-      setLocalMetrics(updated);
+      const updated = value.filter((_, i) => i !== index);
       onChange(updated);
     },
-    [localMetrics, onChange]
+    [value, onChange]
   );
-
-  useEffect(() => {
-    if (localMetrics.length > prevMetricsCount.current) {
-      const lastIndex = localMetrics.length - 1;
-      inputRefs.current[lastIndex]?.focus();
-    }
-    prevMetricsCount.current = localMetrics.length;
-  }, [localMetrics.length]);
 
   return (
     <div>
@@ -134,9 +101,9 @@ const MetricsEditor: React.FC<{
           gap: theme.spacing(1),
         }}
       >
-        {localMetrics.map((metric, index) => (
+        {value.map((metric, index) => (
           <div
-            key={`metric-${index}`}
+            key={`metric-${metric.refId}-${index}`}
             style={{
               display: 'grid',
               gridTemplateColumns: '3fr 3fr 3fr 2fr 1fr',
@@ -152,17 +119,16 @@ const MetricsEditor: React.FC<{
               ref={(el) => (inputRefs.current[index] = el)}
               value={metric.name || ''}
               onChange={(e) => updateMetric(index, 'name', e.currentTarget.value)}
-              onBlur={handleBlur}
               placeholder="Name"
               aria-label="Metric name"
             />
 
             <Combobox<string>
-              options={availableRefIds.map((id: any) => ({ label: id, value: id }))}
+              options={availableRefIds.map((id) => ({ label: id, value: id }))}
               value={metric.refId}
               onChange={(option) => {
-                updateMetric(index, 'refId', option?.value ?? '', true);
-                updateMetric(index, 'dateField', '', true);
+                updateMetric(index, 'refId', option?.value ?? '');
+                updateMetric(index, 'dateField', '');
               }}
               placeholder="Source"
               disabled={availableRefIds.length === 0}
@@ -171,14 +137,14 @@ const MetricsEditor: React.FC<{
             <Combobox<string>
               options={getAvailableFields(metric.refId).map((f) => ({ label: f, value: f }))}
               value={metric.dateField}
-              onChange={(option) => updateMetric(index, 'dateField', option?.value ?? '', true)}
+              onChange={(option) => updateMetric(index, 'dateField', option?.value ?? '')}
               placeholder="Date field"
               disabled={!metric.refId}
             />
 
             <ColorPicker
               color={metric.pointColor || getRandomColor()}
-              onChange={(color) => updateMetric(index, 'pointColor', color, true)}
+              onChange={(color) => updateMetric(index, 'pointColor', color)}
             />
 
             <Button

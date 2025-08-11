@@ -2,8 +2,9 @@ import type { PanelProps } from '@grafana/data';
 
 export type TimelineEvent = {
   time: number;
-  metric: string; // например: "up"
-  displayName: string; // например: "{job=\"grafana\"}"
+  endTime?: number; // Новое поле - необязательное
+  metric: string;
+  displayName: string;
   color: string;
 };
 
