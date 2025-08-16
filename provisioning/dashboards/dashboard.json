@@ -23,36 +23,36 @@
   "panels": [
     {
       "datasource": {
-        "type": "grafana-testdata-datasource",
-        "uid": "trlxrdZVk"
+        "type": "datasource",
+        "uid": "-- Mixed --"
       },
       "fieldConfig": {
         "defaults": {},
         "overrides": []
       },
       "gridPos": {
-        "h": 15,
+        "h": 14,
         "w": 24,
         "x": 0,
         "y": 0
       },
-      "id": 3,
-      "interval": "5h",
+      "id": 1,
+      "interval": "5m",
       "options": {
         "allowLineWrapping": false,
-        "maxLabelWidth": 99,
+        "maxLabelWidth": 90,
         "metrics": [
           {
             "dateField": "time",
             "name": "Metric 1",
-            "pointColor": "#DDA0DD",
+            "pointColor": "#F7DC6F",
             "refId": "A"
           },
           {
             "dateField": "time",
             "name": "Metric 2",
-            "pointColor": "#DDA0DD",
-            "refId": "A"
+            "pointColor": "#FF6B6B",
+            "refId": "B"
           }
         ],
         "minTrackHeight": 32,
@@ -66,11 +66,23 @@
       "pluginVersion": "1.0.0",
       "targets": [
         {
+          "datasource": {
+            "type": "grafana-testdata-datasource",
+            "uid": "trlxrdZVk"
+          },
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "grafana"
+          },
+          "hide": false,
+          "refId": "B"
         }
       ],
       "title": "Panel Title",
-      "type": "timeseriesevents-panel"
+      "type": "none-timeseriesevents-panel"
     }
   ],
   "preload": false,
@@ -88,6 +100,6 @@
   "timezone": "",
   "title": "Provisioned timeseries events dashboard",
   "uid": "a538aeff-5a8a-42a5-901c-938d896fdd6f",
-  "version": 3,
+  "version": 5,
   "weekStart": ""
 }

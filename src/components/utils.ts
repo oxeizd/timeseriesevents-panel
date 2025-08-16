@@ -57,7 +57,6 @@ export const processTimelineData = (
         });
       });
   });
-
   return allEvents;
 };
 
