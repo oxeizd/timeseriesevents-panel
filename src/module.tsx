@@ -12,6 +12,7 @@ export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOption
       name: 'Metrics Configuration',
       description: 'Configure metrics to display on timeline',
       editor: MetricsEditor,
+      defaultValue: [],
     })
     .addBooleanSwitch({
       path: 'showMetricLabels',

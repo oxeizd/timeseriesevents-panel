@@ -1,162 +1,123 @@
-import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Button, Combobox, ColorPicker, Input, useTheme2 } from '@grafana/ui';
-import type { MetricConfig } from './types';
+import { StandardEditorProps } from '@grafana/data';
+import type { SimpleOptions, MetricConfig } from './types';
 import { getRandomColor } from './config';
 
-interface MetricsEditorProps {
-  value?: MetricConfig[];
-  onChange: (value: MetricConfig[]) => void;
-  context: any;
+interface ExtendedProps extends StandardEditorProps<MetricConfig[], SimpleOptions> {
+  // Дополнительные пропсы если нужны
 }
 
-export const MetricsEditor: React.FC<MetricsEditorProps> = ({ value = [], onChange, context }) => {
+export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, context }) => {
   const theme = useTheme2();
-  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const prevMetricsCount = useRef(value.length);
-  const [localMetrics, setLocalMetrics] = useState<MetricConfig[]>(value || []);
-  const updateTimeoutRef = useRef<NodeJS.Timeout>();
+  const [metrics, setMetrics] = useState<MetricConfig[]>(value);
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Мемоизируем данные из контекста
+  const timelineData = useMemo(() => context.data || [], [context.data]);
 
-  // Sync with external changes
-  useEffect(() => {
-    if (JSON.stringify(value) !== JSON.stringify(localMetrics)) {
-      setLocalMetrics(value || []);
-    }
-  }, [value, localMetrics]);
-
+  // Доступные refIds
   const availableRefIds = useMemo(() => {
-    if (!context.data) {
-      return [];
+    if (timelineData instanceof Map) {
+      return Array.from(timelineData.keys());
     }
-    return Array.from(
-      new Set(context.data.map((frame: { refId?: string }) => frame.refId).filter(Boolean) as string[])
-    );
-  }, [context.data]);
+    return Array.from(new Set(timelineData.map((f: any) => f.refId).filter(Boolean)));
+  }, [timelineData]);
 
-  const getAvailableFields = useCallback(
+  // Доступные лейблы для выбранного refId
+  const getAvailableLabels = useCallback(
     (refId: string) => {
-      if (!context.data || !refId) {
+      if (!refId) {
         return [];
       }
-      const frames = context.data.filter((f: { refId?: string }) => f.refId === refId);
-      const allFields = new Set<string>();
 
-      frames.forEach((frame: { fields?: Array<{ name?: string }> }) => {
-        frame.fields?.forEach((field) => {
-          if (field.name) {
-            allFields.add(field.name);
+      if (timelineData instanceof Map) {
+        const metricsForRef = timelineData.get(refId) || [];
+        const labels = new Set<string>();
+        metricsForRef.forEach((metric: { labels: {} }) => {
+          Object.keys(metric.labels).forEach((label) => labels.add(label));
+        });
+        return Array.from(labels);
+      }
+
+      // Для исходных DataFrame
+      const frames = timelineData.filter((f: any) => f.refId === refId);
+      const labels = new Set<string>();
+      frames.forEach((frame: any) => {
+        frame.fields?.forEach((field: any) => {
+          if (field.labels) {
+            Object.keys(field.labels).forEach((label) => labels.add(label));
           }
         });
       });
-
-      return Array.from(allFields);
+      return Array.from(labels);
     },
-    [context.data]
+    [timelineData]
   );
 
-  const safeUpdate = useCallback(
-    (updater: (prev: MetricConfig[]) => MetricConfig[]) => {
-      setLocalMetrics((prev) => {
-        const updated = updater(prev);
-
-        if (updateTimeoutRef.current) {
-          clearTimeout(updateTimeoutRef.current);
-        }
-
-        updateTimeoutRef.current = setTimeout(() => {
-          onChange(updated);
-        }, 0);
-
-        return updated;
-      });
-    },
-    [onChange]
-  );
-
+  // Добавление новой метрики
   const addMetric = useCallback(() => {
     if (availableRefIds.length === 0) {
       return;
     }
 
-    safeUpdate((prev) => {
-      const fieldsForRef = getAvailableFields(availableRefIds[0]);
-      const newMetric: MetricConfig = {
-        refId: availableRefIds[0],
-        dateField: fieldsForRef.includes('time') ? 'time' : fieldsForRef[0] || '',
-        pointColor: getRandomColor(),
-        name: `Metric ${prev.length + 1}`,
-      };
-      return [...prev, newMetric];
-    });
-  }, [availableRefIds, getAvailableFields, safeUpdate]);
+    const newMetric: MetricConfig = {
+      refId: availableRefIds[0],
+      dateField: '',
+      name: `Metric ${metrics.length + 1}`,
+      pointColor: getRandomColor(),
+    };
 
+    const updated = [...metrics, newMetric];
+    setMetrics(updated);
+    onChange(updated);
+  }, [metrics, availableRefIds, onChange]);
+
+  // Обновление метрики
   const updateMetric = useCallback(
-    <K extends keyof MetricConfig>(index: number, field: K, newValue: MetricConfig[K]) => {
-      safeUpdate((prev) => {
-        const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          [field]: newValue,
-        };
+    <K extends keyof MetricConfig>(index: number, field: K, value: MetricConfig[K]) => {
+      const updated = [...metrics];
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+      };
 
-        if (field === 'refId') {
-          const fieldsForNewRef = getAvailableFields(newValue as string);
-          updated[index].dateField = fieldsForNewRef.includes('time') ? 'time' : fieldsForNewRef[0] || '';
-        }
+      // Если изменился refId, сбрасываем dateField
+      if (field === 'refId') {
+        updated[index].dateField = '';
+      }
 
-        return updated;
-      });
+      setMetrics(updated);
+      onChange(updated);
     },
-    [getAvailableFields, safeUpdate]
+    [metrics, onChange]
   );
 
+  // Удаление метрики
   const removeMetric = useCallback(
     (index: number) => {
-      safeUpdate((prev) => prev.filter((_, i) => i !== index));
+      const updated = metrics.filter((_, i) => i !== index);
+      setMetrics(updated);
+      onChange(updated);
     },
-    [safeUpdate]
+    [metrics, onChange]
   );
-
-  // Safe focus handling with delay
-  useEffect(() => {
-    if (localMetrics.length > prevMetricsCount.current) {
-      const timer = setTimeout(() => {
-        const lastIndex = localMetrics.length - 1;
-        inputRefs.current[lastIndex]?.focus();
-      }, 100);
-
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-    prevMetricsCount.current = localMetrics.length;
-    return undefined;
-  }, [localMetrics.length]);
 
   return (
     <div>
-      <Button icon="plus" variant="secondary" onClick={addMetric} disabled={!availableRefIds.length} size="sm">
+      <Button icon="plus" variant="secondary" onClick={addMetric} disabled={availableRefIds.length === 0} size="sm">
         Add metric
       </Button>
 
-      {!availableRefIds.length && (
-        <p
+      {availableRefIds.length === 0 && (
+        <div
           style={{
             color: theme.colors.text.secondary,
-            fontSize: theme.typography.bodySmall.fontSize,
             marginTop: theme.spacing(1),
+            fontSize: theme.typography.bodySmall.fontSize,
           }}
         >
-          No data sources available. Please add queries to your dashboard.
-        </p>
+          No data sources available. Add queries to your dashboard first.
+        </div>
       )}
 
       <div
@@ -167,9 +128,9 @@ export const MetricsEditor: React.FC<MetricsEditorProps> = ({ value = [], onChan
           gap: theme.spacing(1),
         }}
       >
-        {localMetrics.map((metric, index) => (
+        {metrics.map((metric, index) => (
           <div
-            key={`metric-${index}`}
+            key={index}
             style={{
               display: 'grid',
               gridTemplateColumns: '3fr 3fr 3fr 2fr 1fr',
@@ -182,14 +143,13 @@ export const MetricsEditor: React.FC<MetricsEditorProps> = ({ value = [], onChan
             }}
           >
             <Input
-              ref={(el) => (inputRefs.current[index] = el)}
               value={metric.name}
               onChange={(e) => updateMetric(index, 'name', e.currentTarget.value)}
-              placeholder="Name"
+              placeholder="Metric name"
               aria-label="Metric name"
             />
 
-            <Combobox<string>
+            <Combobox
               options={availableRefIds.map((id) => ({ label: id, value: id }))}
               value={metric.refId}
               onChange={(option) => option?.value && updateMetric(index, 'refId', option.value)}
@@ -197,8 +157,8 @@ export const MetricsEditor: React.FC<MetricsEditorProps> = ({ value = [], onChan
               disabled={availableRefIds.length === 0}
             />
 
-            <Combobox<string>
-              options={getAvailableFields(metric.refId).map((f) => ({ label: f, value: f }))}
+            <Combobox
+              options={getAvailableLabels(metric.refId).map((label) => ({ label, value: label }))}
               value={metric.dateField}
               onChange={(option) => option?.value && updateMetric(index, 'dateField', option.value)}
               placeholder="Select date field"
@@ -208,6 +168,7 @@ export const MetricsEditor: React.FC<MetricsEditorProps> = ({ value = [], onChan
             <ColorPicker
               color={metric.pointColor || getRandomColor()}
               onChange={(color) => updateMetric(index, 'pointColor', color)}
+              enableNamedColors={false}
             />
 
             <Button
@@ -217,7 +178,6 @@ export const MetricsEditor: React.FC<MetricsEditorProps> = ({ value = [], onChan
               onClick={() => removeMetric(index)}
               tooltip="Remove metric"
               aria-label="Remove metric"
-              style={{ alignSelf: 'center', justifySelf: 'center', margin: 0 }}
             />
           </div>
         ))}

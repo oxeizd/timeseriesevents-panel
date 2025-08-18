@@ -37,22 +37,16 @@
         "y": 0
       },
       "id": 1,
-      "interval": "5m",
+      "interval": "15s",
       "options": {
         "allowLineWrapping": false,
         "maxLabelWidth": 90,
         "metrics": [
           {
-            "dateField": "time",
+            "dateField": "event_date",
             "name": "Metric 1",
             "pointColor": "#F7DC6F",
             "refId": "A"
-          },
-          {
-            "dateField": "time",
-            "name": "Metric 2",
-            "pointColor": "#FF6B6B",
-            "refId": "B"
           }
         ],
         "minTrackHeight": 32,
@@ -63,22 +57,18 @@
         "showTimeLabels": true,
         "timeLabelDensity": "medium"
       },
-      "pluginVersion": "1.0.0",
+      "pluginVersion": "1.0.1",
       "targets": [
         {
           "datasource": {
-            "type": "grafana-testdata-datasource",
-            "uid": "trlxrdZVk"
+            "type": "prometheus",
+            "uid": "bevd0dczsrvgge"
           },
+          "editorMode": "code",
+          "expr": "my_custom_metric",
+          "legendFormat": "__auto",
+          "range": true,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "datasource",
-            "uid": "grafana"
-          },
-          "hide": false,
-          "refId": "B"
         }
       ],
       "title": "Panel Title",
@@ -87,7 +77,7 @@
   ],
   "preload": false,
   "refresh": "",
-  "schemaVersion": 40,
+  "schemaVersion": 41,
   "tags": [],
   "templating": {
     "list": []
@@ -100,6 +90,5 @@
   "timezone": "",
   "title": "Provisioned timeseries events dashboard",
   "uid": "a538aeff-5a8a-42a5-901c-938d896fdd6f",
-  "version": 5,
-  "weekStart": ""
+  "version": 1
 }
