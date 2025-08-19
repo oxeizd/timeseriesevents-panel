@@ -45,3 +45,5 @@ export const calculateOptimalLabelWidth = (
   // Просто ограничиваем значение минимальным и максимальным
   return Math.max(CONSTANTS.MIN_LABEL_WIDTH, Math.min(labelWidth, CONSTANTS.MAX_LABEL_WIDTH));
 };
+
+export const generateId = (): string => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);

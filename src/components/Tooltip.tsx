@@ -1,135 +1,79 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme2 } from '@grafana/ui';
 import { css } from '@emotion/css';
-import type { TooltipState } from './types';
+import type { TimelineEvent, MetricConfig } from '../types';
 
 interface TooltipProps {
-  tooltip: TooltipState;
+  visible: boolean;
+  timelineEvent: TimelineEvent | null;
+  containerRef: React.RefObject<HTMLDivElement>;
+  timeStart: number;
+  timeSpan: number;
+  width: number;
+  metrics: MetricConfig[];
+  dimensions: {
+    labelWidth: number;
+    trackHeight: number;
+  };
+  setVisible: (visible: boolean) => void;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ tooltip }) => {
+export const Tooltip: React.FC<TooltipProps> = ({
+  visible,
+  timelineEvent,
+  containerRef,
+  timeStart,
+  timeSpan,
+  width,
+  metrics,
+  dimensions,
+  setVisible,
+}) => {
   const theme = useTheme2();
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const hideTimeoutRef = useRef<NodeJS.Timeout>();
-  const fadeTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Очистка всех таймеров при размонтировании
-  useEffect(() => {
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-      if (fadeTimeoutRef.current) {
-        clearTimeout(fadeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Автоматическое скрытие при отсутствии активности
-  useEffect(() => {
-    if (!tooltip.visible) {
-      return;
+  const position = useMemo(() => {
+    if (!visible || !timelineEvent || !containerRef.current) {
+      return { x: 0, y: 0 };
     }
 
-    // Сброс предыдущих таймеров
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-    }
-    if (fadeTimeoutRef.current) {
-      clearTimeout(fadeTimeoutRef.current);
-    }
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const xPos = ((timelineEvent.sortTime - timeStart) / timeSpan) * (width - dimensions.labelWidth);
+    const trackIndex = metrics.findIndex((m) => m.name === timelineEvent.metric);
+    const yPos = trackIndex * dimensions.trackHeight + dimensions.trackHeight / 2;
+    const adjustedY = Math.max(yPos + 35, 0);
 
-    // Плавное исчезновение через 3 секунды
-    hideTimeoutRef.current = setTimeout(() => {
-      if (tooltipRef.current) {
-        tooltipRef.current.style.opacity = '0';
-
-        // Полное удаление из DOM после анимации
-        fadeTimeoutRef.current = setTimeout(() => {
-          if (tooltipRef.current) {
-            tooltipRef.current.style.display = 'none';
-          }
-        }, 200); // Должно совпадать с длительностью transition
-      }
-    }, 3000);
-
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-      if (fadeTimeoutRef.current) {
-        clearTimeout(fadeTimeoutRef.current);
-      }
+    return {
+      x: containerRect.left + dimensions.labelWidth + xPos,
+      y: adjustedY,
     };
-  }, [tooltip.visible, tooltip.x, tooltip.y]);
+  }, [visible, timelineEvent, containerRef, timeStart, timeSpan, width, metrics, dimensions]);
 
-  // Скрытие при клике в любом месте документа
-  useEffect(() => {
-    const handleDocumentClick = () => {
-      if (tooltip.visible && tooltipRef.current) {
-        tooltipRef.current.style.opacity = '0';
-        setTimeout(() => {
-          if (tooltipRef.current) {
-            tooltipRef.current.style.display = 'none';
-          }
-        }, 200);
-      }
-    };
-
-    document.addEventListener('click', handleDocumentClick);
-    return () => document.removeEventListener('click', handleDocumentClick);
-  }, [tooltip.visible]);
-
-  if (!tooltip.visible) {
+  if (!visible || !timelineEvent) {
     return null;
   }
 
-  // Рассчитываем позицию с учетом границ экрана
-  const calculatePosition = () => {
-    if (!tooltipRef.current) {
-      return { x: tooltip.x, y: tooltip.y };
-    }
-
-    const rect = tooltipRef.current.getBoundingClientRect();
-    let x = tooltip.x + 10;
-    let y = tooltip.y + 10;
-
-    // Корректировка позиции, если тултип выходит за границы окна
-    if (x + rect.width > window.innerWidth) {
-      x = window.innerWidth - rect.width - 5;
-    }
-    if (y + rect.height > window.innerHeight) {
-      y = window.innerHeight - rect.height - 5;
-    }
-
-    return { x: Math.max(5, x), y: Math.max(5, y) };
-  };
-
-  const position = calculatePosition();
-
   return (
     <div
-      ref={tooltipRef}
       className={css`
         position: fixed;
         left: ${position.x}px;
         top: ${position.y}px;
+        transform: translateX(-50%);
         background: ${theme.colors.background.primary};
         border: 1px solid ${theme.colors.border.medium};
         border-radius: ${theme.shape.radius.default};
         padding: ${theme.spacing(1)};
         color: ${theme.colors.text.primary};
         font-size: ${theme.typography.bodySmall.fontSize};
-        box-shadow: ${theme.shadows.z3};
+        box-shadow: ${theme.shadows.z2};
         pointer-events: none;
-        z-index: 99999;
-        max-width: 300px;
-        transition: opacity 0.2s ease-out;
-        opacity: 1;
-        display: block; // Сбрасываем возможный display: none
+        z-index: 1000;
+        max-width: 280px;
+        white-space: normal;
+        overflow-wrap: break-word;
       `}
     >
-      {tooltip.content}
+      {timelineEvent.displayName}
     </div>
   );
 };

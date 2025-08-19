@@ -1,8 +1,8 @@
 import { PanelPlugin } from '@grafana/data';
 import { SimplePanel } from './components/SimplePanel';
 import { MetricsEditor } from './components/MetricsEditor';
-import { CONSTANTS } from './components/constants';
-import type { SimpleOptions } from './components/types';
+import { CONSTANTS } from './components/utils/constants';
+import type { SimpleOptions } from './types';
 
 export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOptions((builder) => {
   return builder
@@ -12,7 +12,6 @@ export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOption
       name: 'Metrics Configuration',
       description: 'Configure metrics to display on timeline',
       editor: MetricsEditor,
-      defaultValue: [],
     })
     .addBooleanSwitch({
       path: 'showMetricLabels',

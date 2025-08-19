@@ -1,32 +1,35 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Button, Combobox, ColorPicker, Input, useTheme2 } from '@grafana/ui';
 import { StandardEditorProps } from '@grafana/data';
-import type { SimpleOptions, MetricConfig } from './types';
-import { getRandomColor } from './config';
+import type { SimpleOptions, MetricConfig } from 'types';
+import { getRandomColor, generateId } from './utils/config';
 
-interface ExtendedProps extends StandardEditorProps<MetricConfig[], SimpleOptions> {
-  // Дополнительные пропсы если нужны
-}
+interface ExtendedProps extends StandardEditorProps<MetricConfig[], SimpleOptions> {}
 
 export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, context }) => {
   const theme = useTheme2();
-  const [metrics, setMetrics] = useState<MetricConfig[]>(value);
+  const [metrics, setMetrics] = useState<MetricConfig[]>([]);
 
-  // Мемоизируем данные из контекста
+  useEffect(() => {
+    setMetrics(value);
+  }, [value]);
+
   const timelineData = useMemo(() => context.data || [], [context.data]);
 
-  // Доступные refIds
   const availableRefIds = useMemo(() => {
+    if (!timelineData) {
+      return [];
+    }
+
     if (timelineData instanceof Map) {
       return Array.from(timelineData.keys());
     }
     return Array.from(new Set(timelineData.map((f: any) => f.refId).filter(Boolean)));
   }, [timelineData]);
 
-  // Доступные лейблы для выбранного refId
   const getAvailableLabels = useCallback(
     (refId: string) => {
-      if (!refId) {
+      if (!refId || !timelineData) {
         return [];
       }
 
@@ -39,7 +42,6 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
         return Array.from(labels);
       }
 
-      // Для исходных DataFrame
       const frames = timelineData.filter((f: any) => f.refId === refId);
       const labels = new Set<string>();
       frames.forEach((frame: any) => {
@@ -54,13 +56,13 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
     [timelineData]
   );
 
-  // Добавление новой метрики
   const addMetric = useCallback(() => {
     if (availableRefIds.length === 0) {
       return;
     }
 
     const newMetric: MetricConfig = {
+      id: generateId(),
       refId: availableRefIds[0],
       dateField: '',
       name: `Metric ${metrics.length + 1}`,
@@ -72,7 +74,6 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
     onChange(updated);
   }, [metrics, availableRefIds, onChange]);
 
-  // Обновление метрики
   const updateMetric = useCallback(
     <K extends keyof MetricConfig>(index: number, field: K, value: MetricConfig[K]) => {
       const updated = [...metrics];
@@ -81,7 +82,6 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
         [field]: value,
       };
 
-      // Если изменился refId, сбрасываем dateField
       if (field === 'refId') {
         updated[index].dateField = '';
       }
@@ -92,7 +92,6 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
     [metrics, onChange]
   );
 
-  // Удаление метрики
   const removeMetric = useCallback(
     (index: number) => {
       const updated = metrics.filter((_, i) => i !== index);
@@ -101,6 +100,10 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
     },
     [metrics, onChange]
   );
+
+  if (!timelineData) {
+    return <div style={{ color: theme.colors.text.secondary, padding: theme.spacing(2) }}>Loading data...</div>;
+  }
 
   return (
     <div>
@@ -130,7 +133,7 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
       >
         {metrics.map((metric, index) => (
           <div
-            key={index}
+            key={metric.id}
             style={{
               display: 'grid',
               gridTemplateColumns: '3fr 3fr 3fr 2fr 1fr',
@@ -143,7 +146,7 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
             }}
           >
             <Input
-              value={metric.name}
+              value={metric.name || ''}
               onChange={(e) => updateMetric(index, 'name', e.currentTarget.value)}
               placeholder="Metric name"
               aria-label="Metric name"
@@ -158,10 +161,13 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
             />
 
             <Combobox
-              options={getAvailableLabels(metric.refId).map((label) => ({ label, value: label }))}
+              options={getAvailableLabels(metric.refId).map((label) => ({
+                label: `${label}`,
+                value: label,
+              }))}
               value={metric.dateField}
               onChange={(option) => option?.value && updateMetric(index, 'dateField', option.value)}
-              placeholder="Select date field"
+              placeholder="date"
               disabled={!metric.refId}
             />
 

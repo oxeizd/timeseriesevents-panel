@@ -1,128 +1,103 @@
 import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
-import { useTheme2 } from '@grafana/ui';
 import { css } from '@emotion/css';
-import type { Props, TimelineEvent, TimelineTrackData, TooltipState } from './types';
-import { dataExtractor } from './utils';
-import { TimelineTrack } from './TimelineTrack';
-import { TimeLabels } from './TimeLabels';
-import { EmptyState } from './EmptyState';
-import { CONSTANTS } from './constants';
+import { Tooltip } from './Tooltip';
+import { useTheme2 } from '@grafana/ui';
+import { EmptyState } from './tsx/EmptyState';
+import { TimeLabels } from './tsx/TimeLabels';
+import { TimelineTrack } from './tsx/TimelineTrack';
+import type { Props, TimelineEvent } from 'types';
+import { processTimelineData, groupEventsByMetric, calculateDimensions } from './utils/utils';
 
 export const SimplePanel: React.FC<Props> = ({ options, data, width, height, timeRange }) => {
   const theme = useTheme2();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipEvent, setTooltipEvent] = useState<TimelineEvent | null>(null);
+  const [tooltipTimer, setTooltipTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Получаем временной диапазон из панели Grafana
-  const panelTimeRange = useMemo(
-    () => ({
-      start: timeRange.from.valueOf(),
-      end: timeRange.to.valueOf(),
-    }),
-    [timeRange.from, timeRange.to]
-  );
+  const metrics = useMemo(() => options.metrics || [], [options.metrics]);
+  const timeStart = useMemo(() => timeRange.from.valueOf(), [timeRange.from]);
+  const timeEnd = useMemo(() => timeRange.to.valueOf(), [timeRange.to]);
+  const timeSpan = useMemo(() => timeEnd - timeStart, [timeEnd, timeStart]);
 
-  // Обработка данных с учетом полного диапазона панели
-  const { tracks } = useMemo(() => {
-    const timelineData = dataExtractor(data.series);
-    const allEvents: TimelineEvent[] = [];
+  const processedData = useMemo(() => {
+    try {
+      return processTimelineData(data.series, metrics, timeRange);
+    } catch (error) {
+      console.error('Error processing timeline data:', error);
+      return [];
+    }
+  }, [data.series, metrics, timeRange]);
 
-    options.metrics?.forEach((config) => {
-      const metrics = timelineData.get(config.refId) || [];
+  const eventsByMetric = useMemo(() => groupEventsByMetric(processedData), [processedData]);
 
-      metrics.forEach((metric) => {
-        const dateValue = metric.labels[config.dateField];
-        if (!dateValue) {
-          return;
-        }
-
-        const eventTime = new Date(dateValue).getTime();
-        if (isNaN(eventTime)) {
-          return;
-        }
-
-        // Добавляем все события, фильтрация будет при отображении
-        allEvents.push({
-          time: eventTime,
-          displayName: config.name || metric.displayName,
-          metricValue: metric.values[0],
-          labels: metric.labels,
-          color: config.pointColor,
-        });
+  const dimensions = useMemo(() => {
+    try {
+      return calculateDimensions(width, height, metrics.length, {
+        metrics,
+        maxLabelWidth: options.maxLabelWidth,
+        showMetricLabels: options.showMetricLabels,
+        allowLineWrapping: options.allowLineWrapping,
+        timeLabelDensity: options.timeLabelDensity,
+        minTrackHeight: options.minTrackHeight,
       });
-    });
+    } catch (error) {
+      console.error('Error calculating dimensions:', error);
+      return calculateDimensions(width, height, metrics.length, {});
+    }
+  }, [width, height, metrics, options]);
 
-    // Группируем события по метрикам
-    const groupedTracks: TimelineTrackData[] =
-      options.metrics?.map((config) => ({
-        metricName: config.name || config.refId || '',
-        events: allEvents.filter((e) => e.displayName === (config.name || '')),
-        color: config.pointColor,
-      })) || [];
+  const onPointHover = useCallback(
+    (event: TimelineEvent | null) => {
+      if (event) {
+        setTooltipEvent(event);
+        setTooltipVisible(true);
 
-    return {
-      tracks: groupedTracks,
-    };
-  }, [data.series, options.metrics]);
+        if (tooltipTimer) {
+          clearTimeout(tooltipTimer);
+        }
 
-  // Рассчитываем количество временных меток
-  const timeLabelsCount = useMemo(() => {
-    const spacing =
-      options.timeLabelDensity === 'high'
-        ? CONSTANTS.TIME_LABEL_SPACING.high
-        : options.timeLabelDensity === 'low'
-        ? CONSTANTS.TIME_LABEL_SPACING.low
-        : CONSTANTS.TIME_LABEL_SPACING.medium;
+        const timer = setTimeout(() => {
+          setTooltipVisible(false);
+          setTooltipEvent(null);
+        }, 3000);
 
-    return Math.max(CONSTANTS.MIN_TIME_LABELS, Math.floor(width / spacing));
-  }, [width, options.timeLabelDensity]);
-
-  const handlePointHover = useCallback(
-    (event: React.MouseEvent, timelineEvent: TimelineEvent) => {
-      const container = containerRef.current;
-      if (!container) {
-        return;
+        setTooltipTimer(timer);
+      } else {
+        setTooltipVisible(false);
+        setTooltipEvent(null);
+        if (tooltipTimer) {
+          clearTimeout(tooltipTimer);
+          setTooltipTimer(null);
+        }
       }
-
-      const rect = container.getBoundingClientRect();
-      setTooltip({
-        visible: true,
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-        content: `
-        <strong>${timelineEvent.displayName}</strong><br/>
-        Time: ${new Date(timelineEvent.time).toLocaleString()}<br/>
-        Value: ${timelineEvent.metricValue}<br/>
-        ${Object.entries(timelineEvent.labels)
-          .filter(([key]) => key !== options.metrics?.[0]?.dateField)
-          .map(([k, v]) => `${k}: ${v}`)
-          .join('<br/>')}
-      `,
-      });
     },
-    [options.metrics]
+    [tooltipTimer]
   );
 
   const handleMouseLeave = useCallback(() => {
-    setTooltip(null);
-  }, []);
+    setTooltipVisible(false);
+    setTooltipEvent(null);
+    if (tooltipTimer) {
+      clearTimeout(tooltipTimer);
+      setTooltipTimer(null);
+    }
+  }, [tooltipTimer]);
 
   useEffect(() => {
-    const timer = tooltip?.visible
-      ? setTimeout(() => {
-          setTooltip(null);
-        }, 3000)
-      : undefined;
+    return () => {
+      if (tooltipTimer) {
+        clearTimeout(tooltipTimer);
+      }
+    };
+  }, [tooltipTimer]);
 
-    return () => timer && clearTimeout(timer);
-  }, [tooltip?.visible]);
-
-  if (!options.metrics?.length) {
-    return <EmptyState width={width} message="Please configure metrics in panel options" />;
+  if (!metrics.length) {
+    return <EmptyState width={width} message="Please add metrics in panel options" />;
   }
 
-  if (!tracks.length || tracks.every((track) => track.events.length === 0)) {
-    return <EmptyState width={width} message="No data available for selected time range" />;
+  if (!processedData.length) {
+    return <EmptyState width={width} message="No data found for configured metrics" />;
   }
 
   return (
@@ -134,98 +109,107 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
         height: 100%;
         display: flex;
         flex-direction: column;
-        background: ${theme.colors.background.primary};
         border-radius: ${theme.shape.radius.default};
         overflow: hidden;
+        background: ${theme.colors.background.primary};
       `}
       onMouseLeave={handleMouseLeave}
     >
       <div
         className={css`
           flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
           overflow-y: auto;
-          padding: ${theme.spacing(1)} 0;
+          padding: ${theme.spacing(1)};
         `}
       >
-        {tracks.map(
-          (track, index) =>
-            track.events.length > 0 && (
-              <TimelineTrack
-                key={`${track.metricName}-${index}`}
-                track={track}
-                timeRange={panelTimeRange}
-                width={width}
-                onPointHover={handlePointHover}
-                showMetricLabels={options.showMetricLabels !== false}
-                labelWidth={options.maxLabelWidth || CONSTANTS.BASE_LABEL_WIDTH}
-              />
-            )
-        )}
+        {metrics.map((metric, index) => {
+          const metricName = metric.name || metric.refId || '';
+          const events = eventsByMetric.get(metricName) || [];
+          const isLast = index === metrics.length - 1;
+
+          return (
+            <TimelineTrack
+              key={metric.id}
+              metricName={metricName}
+              events={events}
+              trackHeight={dimensions.trackHeight}
+              labelWidth={dimensions.labelWidth}
+              pointSize={dimensions.pointSize}
+              width={width}
+              timeStart={timeStart}
+              timeSpan={timeSpan}
+              onPointHover={onPointHover}
+              allowLineWrapping={options.allowLineWrapping}
+              showMetricLabels={options.showMetricLabels}
+              showBottomBorder={options.showBottomBorder !== false && !isLast}
+              showPointGlow={options.showPointGlow}
+            />
+          );
+        })}
       </div>
 
       {options.showTimeLabels !== false && (
         <TimeLabels
-          timeStart={panelTimeRange.start}
-          timeSpan={panelTimeRange.end - panelTimeRange.start}
-          timeLabelsCount={timeLabelsCount}
-          labelWidth={options.maxLabelWidth || CONSTANTS.BASE_LABEL_WIDTH}
+          timeStart={timeStart}
+          timeSpan={timeSpan}
+          timeLabelsCount={dimensions.timeLabelsCount}
+          labelWidth={dimensions.labelWidth}
           width={width}
-          height={CONSTANTS.TIME_LABELS_HEIGHT}
-          showMetricLabels={options.showMetricLabels !== false}
+          height={height}
+          showMetricLabels={options.showMetricLabels}
         />
       )}
 
-      {options.showLegend && (
+      {options.showLegend && metrics.length > 0 && (
         <div
           className={css`
+            padding: ${theme.spacing(1)};
             display: flex;
             flex-wrap: wrap;
             gap: ${theme.spacing(1)};
-            padding: ${theme.spacing(1)};
+            background: ${theme.colors.background.secondary};
             border-top: 1px solid ${theme.colors.border.weak};
           `}
         >
-          {tracks.map((track) => (
+          {metrics.map((metric) => (
             <div
-              key={track.metricName}
+              key={metric.id}
               className={css`
                 display: flex;
                 align-items: center;
                 gap: ${theme.spacing(0.5)};
                 font-size: ${theme.typography.bodySmall.fontSize};
+                color: ${theme.colors.text.primary};
               `}
             >
               <div
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: track.color || theme.colors.primary.main,
-                }}
+                className={css`
+                  width: 12px;
+                  height: 12px;
+                  border-radius: 50%;
+                  background: ${metric.pointColor || '#FF6B6B'};
+                `}
               />
-              <span>{track.metricName}</span>
+              <span>{metric.name || metric.refId}</span>
             </div>
           ))}
         </div>
       )}
 
-      {tooltip?.visible && (
-        <div
-          style={{
-            position: 'fixed',
-            left: tooltip.x,
-            top: tooltip.y,
-            backgroundColor: theme.colors.background.primary,
-            border: `1px solid ${theme.colors.border.medium}`,
-            borderRadius: theme.shape.radius.default,
-            padding: theme.spacing(1),
-            zIndex: theme.zIndex.tooltip,
-            boxShadow: theme.shadows.z2,
-            maxWidth: 300,
-          }}
-          dangerouslySetInnerHTML={{ __html: tooltip.content }}
-        />
-      )}
+      <Tooltip
+        visible={tooltipVisible}
+        timelineEvent={tooltipEvent}
+        containerRef={containerRef}
+        timeStart={timeStart}
+        timeSpan={timeSpan}
+        width={width}
+        metrics={metrics}
+        dimensions={dimensions}
+        setVisible={setTooltipVisible}
+      />
     </div>
   );
 };

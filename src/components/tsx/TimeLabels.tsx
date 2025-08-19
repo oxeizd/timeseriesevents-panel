@@ -1,8 +1,7 @@
 import React from 'react';
 import { useTheme2 } from '@grafana/ui';
 import { css } from '@emotion/css';
-import { CONSTANTS } from './constants';
-import { format } from 'date-fns';
+import { formatTime } from 'components/utils/utils';
 
 interface TimeLabelsProps {
   timeStart: number;
@@ -17,35 +16,22 @@ interface TimeLabelsProps {
 export const TimeLabels: React.FC<TimeLabelsProps> = ({
   timeStart,
   timeSpan,
-  timeLabelsCount = CONSTANTS.MIN_TIME_LABELS,
-  labelWidth = CONSTANTS.BASE_LABEL_WIDTH,
+  timeLabelsCount,
+  labelWidth,
   width,
-  height = CONSTANTS.TIME_LABELS_HEIGHT,
+  height,
   showMetricLabels = true,
 }) => {
   const theme = useTheme2();
-
-  const formatLabel = (timestamp: number) => {
-    if (timeSpan > CONSTANTS.DAY_IN_MS * 7) {
-      // Более недели
-      return format(timestamp, 'dd MMM yyyy');
-    }
-    if (timeSpan > CONSTANTS.DAY_IN_MS) {
-      // Более 24 часов
-      return format(timestamp, 'dd/MM HH:mm');
-    }
-    return format(timestamp, 'HH:mm:ss');
-  };
 
   return (
     <div
       className={css`
         position: relative;
-        height: ${height}px;
+        height: 32px;
         width: 100%;
         border-top: 1px solid ${theme.colors.border.weak};
         display: flex;
-        background: ${theme.colors.background.primary};
       `}
     >
       {showMetricLabels && (
@@ -53,7 +39,6 @@ export const TimeLabels: React.FC<TimeLabelsProps> = ({
           className={css`
             width: ${labelWidth}px;
             flex-shrink: 0;
-            background: ${theme.colors.background.primary};
           `}
         />
       )}
@@ -67,14 +52,13 @@ export const TimeLabels: React.FC<TimeLabelsProps> = ({
           justify-content: space-between;
           align-items: flex-start;
           padding-top: ${theme.spacing(0.5)};
-          background: transparent;
         `}
       >
-        {Array.from({ length: timeLabelsCount }).map((_, i) => {
+        {[...Array(timeLabelsCount)].map((_, i) => {
           const time = timeStart + (i / (timeLabelsCount - 1)) * timeSpan;
           return (
             <div
-              key={`time-label-${i}`}
+              key={i}
               className={css`
                 display: flex;
                 flex-direction: column;
@@ -99,11 +83,9 @@ export const TimeLabels: React.FC<TimeLabelsProps> = ({
                   text-align: center;
                   padding: 0 ${theme.spacing(0.5)};
                   border-radius: ${theme.shape.radius.default};
-                  background: ${theme.colors.background.primary};
-                  color: ${theme.colors.text.primary};
                 `}
               >
-                {formatLabel(time)}
+                {formatTime(time, timeSpan)}
               </div>
             </div>
           );

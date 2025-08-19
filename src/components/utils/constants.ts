@@ -1,6 +1,5 @@
 export const CONSTANTS = {
   // Временные пороги
-  DAY_IN_MS: 24 * 60 * 60 * 1000,
   LONG_RANGE_THRESHOLD: 7 * 24 * 60 * 60 * 1000, // 7 дней
   YEAR_THRESHOLD: 365 * 24 * 60 * 60 * 1000, // 1 год
 
