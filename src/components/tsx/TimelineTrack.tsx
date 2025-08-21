@@ -62,7 +62,7 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
 
         return (
           <div
-            key={event.id} 
+            key={event.id}
             className={css`
               position: absolute;
               top: 50%;
