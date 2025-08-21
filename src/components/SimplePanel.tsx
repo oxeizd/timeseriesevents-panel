@@ -170,7 +170,6 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, tim
             display: flex;
             flex-wrap: wrap;
             gap: ${theme.spacing(1)};
-            background: ${theme.colors.background.secondary};
             border-top: 1px solid ${theme.colors.border.weak};
           `}
         >

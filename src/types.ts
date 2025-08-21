@@ -6,7 +6,7 @@ export interface TimelineEvent {
   displayTime: string; // Дата для отображения (берётся из labels)
   sortTime: number; // Время для сортировки (timestamp)
   metric: string; // Название метрики
-  displayName: string; // Имя для отображения (первое значение labels)
+  displayName: string; // Имя для отображения
   color: string; // Цвет точки
 }
 

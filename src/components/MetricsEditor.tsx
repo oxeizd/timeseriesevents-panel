@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Button, Combobox, ColorPicker, Input, useTheme2 } from '@grafana/ui';
+import { Button, Select, ColorPicker, Input, useTheme2 } from '@grafana/ui';
 import { StandardEditorProps } from '@grafana/data';
 import type { SimpleOptions, MetricConfig } from 'types';
 import { getRandomColor, generateId } from './utils/config';
@@ -136,7 +136,7 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
             key={metric.id}
             style={{
               display: 'grid',
-              gridTemplateColumns: '3fr 3fr 3fr 2fr 1fr',
+              gridTemplateColumns: '3fr 3fr 3fr 2fr auto',
               alignItems: 'center',
               padding: theme.spacing(1),
               border: `1px solid ${theme.colors.border.medium}`,
@@ -152,21 +152,21 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
               aria-label="Metric name"
             />
 
-            <Combobox
+            <Select
               options={availableRefIds.map((id) => ({ label: id, value: id }))}
               value={metric.refId}
-              onChange={(option) => option?.value && updateMetric(index, 'refId', option.value)}
+              onChange={(option) => updateMetric(index, 'refId', option.value ?? '')}
               placeholder="Select source"
               disabled={availableRefIds.length === 0}
             />
 
-            <Combobox
+            <Select
               options={getAvailableLabels(metric.refId).map((label) => ({
                 label: `${label}`,
                 value: label,
               }))}
               value={metric.dateField}
-              onChange={(option) => option?.value && updateMetric(index, 'dateField', option.value)}
+              onChange={(option) => updateMetric(index, 'dateField', option.value ?? '')}
               placeholder="date"
               disabled={!metric.refId}
             />
@@ -177,14 +177,17 @@ export const MetricsEditor: React.FC<ExtendedProps> = ({ value = [], onChange, c
               enableNamedColors={false}
             />
 
-            <Button
-              icon="trash-alt"
-              variant="destructive"
-              size="sm"
-              onClick={() => removeMetric(index)}
-              tooltip="Remove metric"
-              aria-label="Remove metric"
-            />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <Button
+                icon="trash-alt"
+                variant="destructive"
+                size="sm"
+                onClick={() => removeMetric(index)}
+                tooltip="Remove metric"
+                aria-label="Remove metric"
+                style={{ width: '32px', height: '32px', padding: 0 }}
+              />
+            </div>
           </div>
         ))}
       </div>

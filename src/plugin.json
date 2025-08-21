@@ -6,9 +6,6 @@
   "info": {
     "keywords": ["panel"],
     "description": "",
-    "author": {
-      "name": "None"
-    },
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"

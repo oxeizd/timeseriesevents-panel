@@ -58,11 +58,11 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
     () =>
       events.map((event) => {
         const left = ((event.sortTime - timeStart) / timeSpan) * 100;
-        const isHovered = hoveredPoint?.id === event.id; // Используем ID для сравнения
+        const isHovered = hoveredPoint?.id === event.id;
 
         return (
           <div
-            key={event.id} // Используем уникальный ID события
+            key={event.id} 
             className={css`
               position: absolute;
               top: 50%;
@@ -109,7 +109,6 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
         );
       }),
     [events, timeStart, timeSpan, pointSize, hoveredPoint, showPointGlow, handleMouseEnter, handleMouseLeave, theme]
-    // Убрали CONFIG из зависимостей, так как это константа
   );
 
   return (
